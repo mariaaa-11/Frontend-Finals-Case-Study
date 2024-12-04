@@ -1,16 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { ListGroup, Button } from 'react-bootstrap';
+import { ListGroup, Button, Spinner, Alert, Container } from 'react-bootstrap';
 
 const ViewCart = () => {
-  const [cartItems, setCartItems] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [cartItems, setCartItems] = useState([]); // State for storing cart items
+  const [loading, setLoading] = useState(true); // State for loading indicator
+  const [error, setError] = useState(null); // State for error messages
 
+  // Fetch cart items from the API
   const fetchCartItems = async () => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('token'); // Retrieve token from localStorage
 
     if (!token) {
-      alert('You must be logged in to view the cart.');
+      setError('You must be logged in to view the cart.');
+      setLoading(false);
       return;
     }
 
@@ -19,54 +21,94 @@ const ViewCart = () => {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`, // Use the token for authentication
         },
       });
 
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`Fetching cart items failed: ${errorText}`);
+        throw new Error(`Failed to fetch cart items: ${errorText}`);
       }
 
       const data = await response.json();
-      setCartItems(data.cartItems || []); // Assuming the response contains cartItems
-    } catch (error) {
-      setError(error.message);
+      setCartItems(data.cartItems || []); // Set cart items or empty array if undefined
+    } catch (err) {
+      setError(err.message); // Set error message on failure
     } finally {
-      setLoading(false);
+      setLoading(false); // Stop loading indicator
     }
   };
 
+  // Fetch cart items when the component mounts
   useEffect(() => {
     fetchCartItems();
   }, []);
 
+  // Handle checkout logic
   const handleCheckout = () => {
-    // Handle checkout logic here
-    alert('Proceeding to checkout...');
+    alert('Proceeding to checkout...'); // Placeholder for checkout functionality
+    // You can redirect to a checkout page or trigger other logic here
   };
 
-  if (loading) return <p>Loading...</p>;
-  if (error) return <p>Error: {error}</p>;
-
   return (
-    <div>
-      {cartItems.length === 0 ? (
-        <p>Your cart is empty</p>
-      ) : (
-        <ListGroup>
-          {cartItems.map((item, index) => (
-            <ListGroup.Item key={index}>
-              {item.product.name} - Quantity: {item.quantity} - ${item.product.price}
-            </ListGroup.Item>
-          ))}
-        </ListGroup>
+    <Container className="mt-5">
+      <h2>My Cart</h2>
+
+      {/* Loading State */}
+      {loading && (
+        <div className="text-center my-3">
+          <Spinner animation="border" role="status">
+            <span className="visually-hidden">Loading...</span>
+          </Spinner>
+        </div>
       )}
-      <Button variant="primary" onClick={handleCheckout} disabled={cartItems.length === 0}>
-        Proceed to Checkout
-      </Button>
-    </div>
+
+      {/* Error State */}
+      {error && (
+        <Alert variant="danger" className="my-3">
+          {error}
+        </Alert>
+      )}
+
+      {/* Cart Items */}
+      {!loading && !error && (
+        <>
+          {cartItems.length === 0 ? (
+            <Alert variant="info">Your cart is empty.</Alert>
+          ) : (
+            <ListGroup className="mb-3">
+              {cartItems.map((item, index) => (
+                <ListGroup.Item key={index}>
+                  <div className="d-flex justify-content-between">
+                    <div>
+                      <strong>{item.product.name}</strong>
+                      <br />
+                      Quantity: {item.quantity}
+                      <br />
+                      Price: ${item.product.price}
+                    </div>
+                    <div className="text-end">
+                      Total: ${(item.product.price * item.quantity).toFixed(2)}
+                    </div>
+                  </div>
+                </ListGroup.Item>
+              ))}
+            </ListGroup>
+          )}
+
+          {/* Checkout Button */}
+          <Button
+            variant="primary"
+            onClick={handleCheckout}
+            disabled={cartItems.length === 0}
+          >
+            Proceed to Checkout
+          </Button>
+        </>
+      )}
+    </Container>
   );
 };
 
 export default ViewCart;
+ 
